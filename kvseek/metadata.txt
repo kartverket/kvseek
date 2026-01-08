@@ -1,0 +1,16 @@
+[general]
+name=Søk
+qgisMinimumVersion=3.22
+qgisMaximumVersion=4.99
+version=1.0.0
+description=Søk etter Norges offisielle adresser, eiendommer og stedsnavn direkte i QGIS.
+about=Søk i Kartverkets åpne tjenester for adresse, eiendom og stedsnavn. Treff kan forhåndsvises i kartet (midlertidig markør), zoomes til og legges til som memory-lag (søkte_adresser, søkte_eiendommer, søkte_stedsnavn). Dockbart panel og støtte for QGIS 3.x og QGIS 4 (Qt6).
+category=Web
+author=Tom-Erik Bakkely Aasheim
+email=tom-erik.aasheim@kartverket.no
+icon=icon_kvseek.svg
+tags=Kartverket,Geonorge,adresse,eiendom,stedsnavn,REST,geokoding,matrikkel
+homepage=https://github.com/kartverket/kvseek
+repository=https://github.com/kartverket/kvseek
+tracker=https://github.com/kartverket/kvseek/issues
+supportsQt6=True
