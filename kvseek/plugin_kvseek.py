@@ -1321,7 +1321,12 @@ class KvSeekWidget(QWidget):
             return
 
         # OBS: Stedsnavn-API kan være streng på parametre, hold det enkelt.
-        params = {"sok": s, "treffPerSide": 200, "side": 0}
+        params = {
+            "sok": s,
+            "treffPerSide": 200,  # ok (<=500)
+            "side": 1,            # <-- fiks for 422
+            "utkoordsys": self._project_epsg(),  # få punkt i samme EPSG som prosjekt (hvis mulig)
+        }
 
         self._set_busy(True, "Søker stedsnavn…")
         try:

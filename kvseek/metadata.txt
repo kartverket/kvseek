@@ -2,7 +2,7 @@
 name=Søk
 qgisMinimumVersion=3.22
 qgisMaximumVersion=4.99
-version=1.0.0
+version=1.0.1
 description=Søk etter Norges offisielle adresser, eiendommer og stedsnavn direkte i QGIS.
 about=Søk i Kartverkets åpne tjenester for adresse, eiendom og stedsnavn. Treff kan forhåndsvises i kartet (midlertidig markør), zoomes til og legges til som memory-lag (søkte_adresser, søkte_eiendommer, søkte_stedsnavn). Dockbart panel og støtte for QGIS 3.x og QGIS 4 (Qt6).
 category=Web
