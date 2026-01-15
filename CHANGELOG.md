@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)  
 Versioning: [SemVer](https://semver.org/)
 
+## [1.1.1] - 2026-01-15
+
+### Fixed
+
+- Fixed case where plugin fails to empty search results of properties and municipalities due to conflict with cmb_kommune needing to be cmb_kommune_prop and cmb_kommune_munici.
+
 ## [1.1.0] - 2026-01-15
 
 ### Added

@@ -1732,14 +1732,14 @@ class KvSeekWidget(QWidget):
         self.inp_adressenavn.setFocus()
 
     def on_clear_prop_fields(self):
-        self.cmb_kommune.setCurrentIndex(0)
+        self.cmb_kommune_prop.setCurrentIndex(0)
         self.sp_gnr.setValue(0)
         self.sp_bnr.setValue(0)
         self.sp_fnr.setValue(0)
         self.sp_snr.setValue(0)
-        if self.cmb_kommune.lineEdit():
-            self.cmb_kommune.lineEdit().setText("")
-            self.cmb_kommune.lineEdit().setFocus()
+        if self.cmb_kommune_prop.lineEdit():
+            self.cmb_kommune_prop.lineEdit().setText("")
+            self.cmb_kommune_prop.lineEdit().setFocus()
 
     def on_clear_county_fields(self):
         self.cmb_fylke.setCurrentIndex(0)
@@ -1748,10 +1748,10 @@ class KvSeekWidget(QWidget):
             self.cmb_fylke.lineEdit().setFocus()
 
     def on_clear_munici_fields(self):
-        self.cmb_kommune.setCurrentIndex(0)
-        if self.cmb_kommune.lineEdit():
-            self.cmb_kommune.lineEdit().setText("")
-            self.cmb_kommune.lineEdit().setFocus()
+        self.cmb_kommune_munici.setCurrentIndex(0)
+        if self.cmb_kommune_munici.lineEdit():
+            self.cmb_kommune_munici.lineEdit().setText("")
+            self.cmb_kommune_munici.lineEdit().setFocus()
 
     def on_clear_place_fields(self):
         self.inp_place.clear()

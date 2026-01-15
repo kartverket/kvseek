@@ -2,7 +2,7 @@
 name=Søk
 qgisMinimumVersion=3.22
 qgisMaximumVersion=4.99
-version=1.1.0
+version=1.1.1
 description=Søk i Norges offisielle APIer direkte i QGIS. Search Norway’s official APIs directly in QGIS.
 about=Søk i Kartverkets åpne tjenester for adresse, eiendom, fylker, kommuner og stedsnavn. Treff kan forhåndsvises i kartet (midlertidig markør/flate), zoomes til og legges til som memory-lag (søkte_adresser, søkte_eiendommer, søkte_fylker, søkte_kommuner, søkte_stedsnavn). Dockbart panel og støtte for QGIS 3.x og QGIS 4 (Qt6).\n\nSearch for addresses, properties, counties, municipalities and place names using the official open REST APIs provided by the National Mapping Authority of Norway (Kartverket). Hits are previewed in the map as a temporary marker or polygon, can be zoomed to, and can be stored as temporary memory layers. The plugin is a dockable panel and supports both QGIS 3.x and QGIS 4 (Qt6).
 category=Web
