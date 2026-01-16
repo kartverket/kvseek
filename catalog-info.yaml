@@ -1,0 +1,21 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: kvseek
+  title: Søk
+  tags:
+    - public
+spec:
+  type: library
+  owner: group:default/kartdata
+  lifecycle: production
+  consumesApis:
+    - api:default/matrikkel-rest-api-eiendom-api
+    - api:default/smia-stedsnavn-api
+    - api:default/smia-kommuneinfo-api
+    - api:default/matrikkel-rest-api-adresse-api
+  dependsOn:
+    - component:default/matrikkel-rest-api-eiendom
+    - component:default/smia-stedsnavn
+    - component:default/smia-kommuneinfo
+    - component:default/matrikkel-rest-api-adresse
