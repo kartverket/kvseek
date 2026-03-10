@@ -88,6 +88,8 @@ from qgis.core import (
 )
 from qgis.gui import QgsVertexMarker, QgsRubberBand
 
+from qgis.PyQt.QtNetwork import QNetworkRequest, QNetworkReply
+
 
 # -----------------------------
 # Konfig
@@ -140,8 +142,85 @@ LAYER_PLACE = "søkte_stedsnavn"
 LAYER_COUNTY = "søkte_fylker"
 LAYER_MUNICI = "søkte_kommuner"
 
+def network_reply_error(name: str, default=None):
+    v = getattr(QNetworkReply, name, None)
+    if v is not None:
+        return v
+
+    ne = getattr(QNetworkReply, "NetworkError", None)
+    if ne is not None and hasattr(ne, name):
+        return getattr(ne, name)
+
+    return default
+
+
+QNETWORKREPLY_NO_ERROR = network_reply_error("NoError", 0)
+
 def log(msg: str, level=Qgis.Info) -> None:
     QgsMessageLog.logMessage(msg, LOG_TAG, level)
+
+def _qt_try(path: str):
+    obj = Qt
+    for part in path.split("."):
+        if not hasattr(obj, part):
+            return None
+        obj = getattr(obj, part)
+    return obj
+
+
+def qt_pick(*paths: str, default=None):
+    for p in paths:
+        v = _qt_try(p)
+        if v is not None:
+            return v
+    return default
+
+def size_policy(name: str, default=None):
+    v = getattr(QSizePolicy, name, None)
+    if v is not None:
+        return v
+
+    pol = getattr(QSizePolicy, "Policy", None)
+    if pol is not None and hasattr(pol, name):
+        return getattr(pol, name)
+
+    return default
+
+def network_header(name: str, default=None):
+    v = getattr(QNetworkRequest, name, None)
+    if v is not None:
+        return v
+
+    kh = getattr(QNetworkRequest, "KnownHeaders", None)
+    if kh is not None and hasattr(kh, name):
+        return getattr(kh, name)
+
+    return default
+
+
+QNETWORK_USER_AGENT_HEADER = network_header("UserAgentHeader")
+
+QT_SIZEPOLICY_PREFERRED = size_policy("Preferred", 5)
+QT_SIZEPOLICY_FIXED = size_policy("Fixed", 0)
+
+def combo_insert_policy(name: str, default=None):
+    v = getattr(QComboBox, name, None)
+    if v is not None:
+        return v
+
+    pol = getattr(QComboBox, "InsertPolicy", None)
+    if pol is not None and hasattr(pol, name):
+        return getattr(pol, name)
+
+    return default
+
+
+QCOMBO_NOINSERT = combo_insert_policy("NoInsert", 0)
+
+QT_DOCK_LEFT = qt_pick("DockWidgetArea.LeftDockWidgetArea", "LeftDockWidgetArea", default=0x1)
+QT_DOCK_RIGHT = qt_pick("DockWidgetArea.RightDockWidgetArea", "RightDockWidgetArea", default=0x2)
+
+QT_USER_ROLE = qt_pick("ItemDataRole.UserRole", "UserRole", default=0x0100)
 
 # -----------------------------
 # Datamodell
@@ -248,9 +327,9 @@ class KvSeekPlugin:
                 self.dock = QDockWidget("Søk", self.iface.mainWindow())
                 self.dock.setObjectName("KvSeekDock")
                 self.dock.setWidget(self.widget)
-                self.dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+                self.dock.setAllowedAreas(QT_DOCK_LEFT | QT_DOCK_RIGHT)
                 self.dock.visibilityChanged.connect(self._on_dock_visibility_changed)
-                self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dock)
+                self.iface.addDockWidget(QT_DOCK_RIGHT, self.dock)
             self.dock.show()
             self.dock.raise_()
         else:
@@ -309,7 +388,7 @@ class KvSeekWidget(QWidget):
 
         # Tabs (søkeområde) - fast høyde
         self.tabs = QTabWidget(self)
-        self.tabs.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.tabs.setSizePolicy(QT_SIZEPOLICY_PREFERRED, QT_SIZEPOLICY_FIXED)
 
         self.tab_addr = QWidget(self)
         self.tab_prop = QWidget(self)
@@ -415,7 +494,7 @@ class KvSeekWidget(QWidget):
 
         self.cmb_kommune_prop = QComboBox(self)
         self.cmb_kommune_prop.setEditable(True)
-        self.cmb_kommune_prop.setInsertPolicy(QComboBox.NoInsert)
+        self.cmb_kommune_prop.setInsertPolicy(QCOMBO_NOINSERT)
         if self.cmb_kommune_prop.lineEdit():
             self.cmb_kommune_prop.lineEdit().setPlaceholderText("Velg / skriv kommunenavn…")
 
@@ -463,7 +542,7 @@ class KvSeekWidget(QWidget):
 
         self.cmb_fylke = QComboBox(self)
         self.cmb_fylke.setEditable(True)
-        self.cmb_fylke.setInsertPolicy(QComboBox.NoInsert)
+        self.cmb_fylke.setInsertPolicy(QCOMBO_NOINSERT)
         if self.cmb_fylke.lineEdit():
             self.cmb_fylke.lineEdit().setPlaceholderText("Velg / skriv fylkesnavn…")
 
@@ -496,7 +575,7 @@ class KvSeekWidget(QWidget):
 
         self.cmb_kommune_munici = QComboBox(self)
         self.cmb_kommune_munici.setEditable(True)
-        self.cmb_kommune_munici.setInsertPolicy(QComboBox.NoInsert)
+        self.cmb_kommune_munici.setInsertPolicy(QCOMBO_NOINSERT)
         if self.cmb_kommune_munici.lineEdit():
             self.cmb_kommune_munici.lineEdit().setPlaceholderText("Velg / skriv kommunenavn…")
 
@@ -775,7 +854,11 @@ class KvSeekWidget(QWidget):
         qurl.setQuery(query)
 
         req = QNetworkRequest(qurl)
-        req.setHeader(QNetworkRequest.UserAgentHeader, f"{PLUGIN_NAME}/0.9 (QGIS)")
+        if QNETWORK_USER_AGENT_HEADER is not None:
+            req.setHeader(QNETWORK_USER_AGENT_HEADER, f"{PLUGIN_NAME}/0.9 (QGIS)")
+        else:
+            req.setRawHeader(b"User-Agent", f"{PLUGIN_NAME}/0.9 (QGIS)".encode("utf-8"))
+
         nam = QgsNetworkAccessManager.instance()
 
         reply = nam.get(req)
@@ -783,7 +866,7 @@ class KvSeekWidget(QWidget):
         reply.finished.connect(loop.quit)
         loop.exec()
 
-        if reply.error():
+        if reply.error() != QNETWORKREPLY_NO_ERROR:
             raise RuntimeError(f"HTTP-feil: {reply.errorString()}")
 
         raw = bytes(reply.readAll()).decode("utf-8", errors="replace")
@@ -1360,7 +1443,7 @@ class KvSeekWidget(QWidget):
                     f"{h.point.y:.3f}" if h.point else "",
                 ])
 
-            item.setData(0, Qt.UserRole, idx)
+            item.setData(0, QT_USER_ROLE, idx)
             self.tree.addTopLevelItem(item)
 
         for i in range(self.tree.columnCount()):
@@ -1376,7 +1459,7 @@ class KvSeekWidget(QWidget):
         items = self.tree.selectedItems()
         if not items:
             return None
-        idx = items[0].data(0, Qt.UserRole)
+        idx = items[0].data(0, QT_USER_ROLE)
         try:
             return self._hits[int(idx)]
         except Exception:
@@ -1719,7 +1802,7 @@ class KvSeekWidget(QWidget):
         if not current:
             return
         try:
-            idx = int(current.data(0, Qt.UserRole))
+            idx = int(current.data(0, QT_USER_ROLE))
             hit = self._hits[idx]
         except Exception:
             return

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)  
 Versioning: [SemVer](https://semver.org/)
 
+## [1.2.0] - 2026-03-10
+
+### Fixed
+
+- Fixed QGIS 4 / Qt6 compatibility issues related to `QSizePolicy`.
+- Fixed QGIS 4 / Qt6 compatibility issues related to `QComboBox` insert policies.
+- Fixed QGIS 4 / Qt6 compatibility issues related to dock widget areas.
+- Fixed QGIS 4 / Qt6 compatibility issues related to `Qt.UserRole`.
+- Fixed QGIS 4 / Qt6 compatibility issues related to `QNetworkRequest` and network replies.
+
+### Changed
+
+- Updated the plugin icon.
+
 ## [1.1.1] - 2026-01-15
 
 ### Fixed
