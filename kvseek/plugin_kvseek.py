@@ -826,9 +826,9 @@ class KvSeekWidget(QWidget):
         return crs
 
     def _transform_point_xy(self, x: float, y: float, src_epsg: int, dest_crs: QgsCoordinateReferenceSystem) -> QgsPointXY:
-        src_crs = self._crs_from_epsg(src_epsg)
+        src_crs = self._crs_from_epsg(src_epsg if src_epsg else 4258)
         pt = QgsPointXY(x, y)
-        if src_crs.authid() != dest_crs.authid():
+        if src_crs.isValid() and dest_crs.isValid() and src_crs.authid() != dest_crs.authid():
             xform = QgsCoordinateTransform(src_crs, dest_crs, QgsProject.instance())
             pt = xform.transform(pt)
         return QgsPointXY(pt.x(), pt.y())
@@ -1197,14 +1197,13 @@ class KvSeekWidget(QWidget):
         )
 
     # ---------- Stedsnavn parsing ----------
-    def _place_obj_to_hit(self, obj: Dict[str, Any]) -> Optional[SearchHit]:
+    def _place_obj_to_hit(self, obj: Dict[str, Any], fallback_epsg: Optional[int] = None) -> Optional[SearchHit]:
         navn = (obj.get("stedsnavn") or obj.get("skrivemåte") or obj.get("navn") or "").strip()
         if not navn:
             return None
 
         ntype = (obj.get("navneobjekttype") or obj.get("navnetype") or obj.get("type") or "").strip()
 
-        # Kommune: ligger i liste "kommuner"
         kommunenavn = ""
         kommuner = obj.get("kommuner")
         if isinstance(kommuner, list) and kommuner:
@@ -1214,11 +1213,10 @@ class KvSeekWidget(QWidget):
                     kn = (k.get("kommunenavn") or "").strip()
                     if kn:
                         names.append(kn)
-            kommunenavn = ", ".join(dict.fromkeys(names))  # unik + behold rekkefølge
+            kommunenavn = ", ".join(dict.fromkeys(names))
 
         rp = obj.get("representasjonspunkt") or obj.get("punkt") or {}
 
-        # Hent epsg fra flere mulige felt
         epsg_raw = None
         if isinstance(rp, dict):
             epsg_raw = rp.get("epsg") or rp.get("koordinatsystem") or rp.get("srid")
@@ -1227,7 +1225,6 @@ class KvSeekWidget(QWidget):
         else:
             x_raw = y_raw = None
 
-        # fallback om epsg ligger på toppnivå
         if epsg_raw is None:
             epsg_raw = obj.get("epsg") or obj.get("koordinatsystem") or obj.get("srid")
 
@@ -1251,28 +1248,27 @@ class KvSeekWidget(QWidget):
         if xf is None or yf is None:
             return None
 
-        # epsg parsing (tåler "EPSG:25833" osv)
-        epsg_i = 4258
+        epsg_i = fallback_epsg or 4258
         try:
             if epsg_raw is not None:
                 s = str(epsg_raw).upper().replace("EPSG:", "").strip()
-                # plukk ut første tallsekvens
                 m = re.search(r"(\d+)", s)
                 if m:
                     epsg_i = int(m.group(1))
         except Exception:
-            epsg_i = 4258
+            epsg_i = fallback_epsg or 4258
 
-        # --- Sanity check uten å ødelegge trefflisten ---
-        # Hvis EPSG sier grader, men tallene ser ut som meter (UTM)
         looks_like_degrees = (abs(xf) <= 180 and abs(yf) <= 90)
         looks_like_utm = (0 <= xf <= 1_000_000 and 5_000_000 <= yf <= 8_000_000)
 
         if epsg_i in (4258, 4326) and (not looks_like_degrees) and looks_like_utm:
-            epsg_i = 25833
+            prj_epsg = fallback_epsg or self._project_epsg()
+            if prj_epsg in (25832, 25833, 25835):
+                epsg_i = prj_epsg
+            else:
+                epsg_i = 25833
 
-        # motsatt: EPSG sier UTM, men tallene ser ut som grader
-        if epsg_i in (25832, 25833, 25834) and looks_like_degrees:
+        if epsg_i in (25832, 25833, 25834, 25835) and looks_like_degrees:
             epsg_i = 4258
 
         pt = HitPoint(x=xf, y=yf, epsg=epsg_i)
@@ -1399,8 +1395,7 @@ class KvSeekWidget(QWidget):
 
         for idx, h in enumerate(hits):
             if h.kind == "adresse":
-
-                if h.point:                   
+                   
                     item = QTreeWidgetItem([
                     h.label,
                     h.objtype,
@@ -1439,8 +1434,6 @@ class KvSeekWidget(QWidget):
                     h.label,
                     h.objtype or "",
                     h.kommunenavn or "",
-                    f"{h.point.x:.3f}" if h.point else "",
-                    f"{h.point.y:.3f}" if h.point else "",
                 ])
 
             item.setData(0, QT_USER_ROLE, idx)
@@ -1931,12 +1924,6 @@ class KvSeekWidget(QWidget):
             hits, src_epsg = self._parse_property_featurecollection(data, fallback_epsg=out_epsg)
             log(f"Eiendom parse: total={len(hits)}, src_epsg={src_epsg}", Qgis.Info)
 
-            self._set_mode_headers("eiendom")
-            self._render_hits(hits)
-
-            hits, src_epsg = self._parse_property_featurecollection(data, fallback_epsg=out_epsg)
-            log(f"Eiendom parse: total={len(hits)}, src_epsg={src_epsg}", Qgis.Info)
-
             # --- NYTT: tell features og features uten geometri ---
             feat_total = 0
             feat_wo_geom = 0
@@ -2116,13 +2103,15 @@ class KvSeekWidget(QWidget):
         if len(s) < 2:
             QMessageBox.information(self, "Søk", "Skriv minst 2 tegn.")
             return
+        
+        out_epsg = self._project_epsg()
 
         # OBS: Stedsnavn-API kan være streng på parametre, hold det enkelt.
         params = {
             "sok": s,
             "treffPerSide": 200,  # ok (<=500)
             "side": 1,            # <-- fiks for 422
-            "utkoordsys": self._project_epsg(),  # få punkt i samme EPSG som prosjekt (hvis mulig)
+            "utkoordsys": out_epsg,  # få punkt i samme EPSG som prosjekt (hvis mulig)
         }
 
         self._set_busy(True, "Søker stedsnavn…")
@@ -2141,7 +2130,12 @@ class KvSeekWidget(QWidget):
                 for it in items:
                     if not isinstance(it, dict):
                         continue
-                    h = self._place_obj_to_hit(it)
+
+                    rp = it.get("representasjonspunkt") or it.get("punkt") or {}
+                    log(f"Stedsnavn raw rp={rp}", Qgis.Info)
+
+                    h = self._place_obj_to_hit(it, fallback_epsg=out_epsg)
+                    log(f"Stedsnavn raw rp={rp}, parsed_epsg={h.point.epsg if h and h.point else 'None'}", Qgis.Info)
                     if h:
                         hits.append(h)
 

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)  
 Versioning: [SemVer](https://semver.org/)
 
+## [1.3.0] - 2026-04-08
+
+### Fixed
+
+- Fixed stedsnavn search coordinate handling for projects in EPSG:25832.
+- Improved fallback logic for place-name coordinates by using the project CRS instead of hardcoded EPSG:25833 when API responses are ambiguous.
+- Fixed place search parsing/logging in on_search_place().
+- Improved robustness in point transformation when source EPSG is missing or invalid.
+- Cleaned up result rendering for address and place-name hits.
+
 ## [1.2.0] - 2026-03-10
 
 ### Fixed
